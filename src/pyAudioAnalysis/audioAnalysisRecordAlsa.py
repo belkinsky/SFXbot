@@ -1,10 +1,10 @@
-import sys, os, alsaaudio, time, audioop, numpy, glob,  scipy, subprocess, wave, cPickle, threading, shutil
+import sys, os, alsaaudio, time, audioop, numpy, glob,  scipy, subprocess, wave, pickle, threading, shutil
 import matplotlib.pyplot as plt
 import scipy.io.wavfile as wavfile
 from scipy.fftpack import rfft
-import audioFeatureExtraction as aF	
-import audioTrainTest as aT
-import audioSegmentation as aS
+from . import audioFeatureExtraction as aF	
+from . import audioTrainTest as aT
+from . import audioSegmentation as aS
 from scipy.fftpack import fft
 import matplotlib
 matplotlib.use('TkAgg')
@@ -19,7 +19,7 @@ def recordAudioSegments(RecordPath, BLOCKSIZE):
 	# 
 	# NOTE: filenames are based on clock() value
 	
-	print "Press Ctr+C to stop recording"
+	print("Press Ctr+C to stop recording")
 	RecordPath += os.sep
 	d = os.path.dirname(RecordPath)
 	if os.path.exists(d) and RecordPath!=".":
@@ -55,7 +55,7 @@ def recordAudioSegments(RecordPath, BLOCKSIZE):
 				curWavFileName = RecordPath + os.sep + str(elapsedTime) + ".wav"				
 				midTermBufferArray = numpy.int16(midTermBuffer)
 				wavfile.write(curWavFileName, Fs, midTermBufferArray)
-				print "AUDIO  OUTPUT: Saved " + curWavFileName
+				print("AUDIO  OUTPUT: Saved " + curWavFileName)
 				midTermBuffer = []
 				elapsedTime = "%08.3f" % (time.time())	
 	
@@ -110,7 +110,7 @@ def recordAnalyzeAudio(duration, outputWavFile, midTermBufferSizeSec, modelName,
 				[mtFeatures, stFeatures] = aF.mtFeatureExtraction(midTermBuffer, Fs, 2.0*Fs, 2.0*Fs, 0.020*Fs, 0.020*Fs)
 				curFV = (mtFeatures[:,0] - MEAN) / STD;
 				[result, P] = aT.classifierWrapper(Classifier, modelType, curFV)
-				print classNames[int(result)]
+				print(classNames[int(result)])
 			allData = allData + midTermBuffer
 
 			plt.clf()
@@ -129,7 +129,7 @@ def main(argv):
 		if (len(argv)==4): 			# record segments (until ctrl+c pressed)
 			recordAudioSegments(argv[2], float(argv[3]))
 		else:
-			print "Error.\nSyntax: " + argv[0] + " -recordSegments <recordingPath> <segmentDuration>"
+			print("Error.\nSyntax: " + argv[0] + " -recordSegments <recordingPath> <segmentDuration>")
 
 	if argv[1] == '-recordAndClassifySegments':	# record input
 		if (len(argv)==6):			# recording + audio analysis
@@ -143,7 +143,7 @@ def main(argv):
 				raise Exception("Input modelName not found!")
 			recordAnalyzeAudio(duration, outputWavFile, 2.0, modelName, modelType)
 		else:
-			print "Error.\nSyntax: " + argv[0] + " -recordAndClassifySegments <duration> <outputWafFile> <modelName> <modelType>"
+			print("Error.\nSyntax: " + argv[0] + " -recordAndClassifySegments <duration> <outputWafFile> <modelName> <modelType>")
 	
 if __name__ == '__main__':
 	main(sys.argv)

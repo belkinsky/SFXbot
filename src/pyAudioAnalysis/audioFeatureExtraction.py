@@ -3,7 +3,7 @@ import time
 import os
 import glob
 import numpy
-import cPickle
+import pickle
 import aifc
 import math
 from numpy import NaN, Inf, arange, isscalar, array
@@ -14,9 +14,9 @@ from scipy.signal import fftconvolve
 from matplotlib.mlab import find
 import matplotlib.pyplot as plt
 from scipy import linalg as la
-import audioTrainTest as aT
-import audioBasicIO
-import utilities
+from . import audioTrainTest as aT
+from . import audioBasicIO
+from . import utilities
 from scipy.signal import lfilter, hamming
 #from scikits.talkbox import lpc
 
@@ -275,7 +275,7 @@ def stChromaFeatures(X, fs, nChroma, nFreqsPerChroma):
     newD = int(numpy.ceil(C.shape[0] / 12.0) * 12)
     C2 = numpy.zeros((newD, ))
     C2[0:C.shape[0]] = C
-    C2 = C2.reshape(C2.shape[0]/12, 12)
+    C2 = C2.reshape(int(C2.shape[0]/12), 12)
     #for i in range(12):
     #    finalC[i] = numpy.sum(C[i:C.shape[0]:12])
     finalC = numpy.matrix(numpy.sum(C2, axis=0)).T
@@ -350,10 +350,10 @@ def stChromagram(signal, Fs, Win, Step, PLOT=False):
         Fstep = int(nfft / 5.0)
 #        FreqTicks = range(0, int(nfft) + Fstep, Fstep)
 #        FreqTicksLabels = [str(Fs/2-int((f*Fs) / (2*nfft))) for f in FreqTicks]
-        ax.set_yticks(range(Ratio / 2, len(FreqAxis) * Ratio, Ratio))
+        ax.set_yticks(list(range(Ratio / 2, len(FreqAxis) * Ratio, Ratio)))
         ax.set_yticklabels(FreqAxis[::-1])
         TStep = countFrames / 3
-        TimeTicks = range(0, countFrames, TStep)
+        TimeTicks = list(range(0, countFrames, TStep))
         TimeTicksLabels = ['%.2f' % (float(t * Step) / Fs) for t in TimeTicks]
         ax.set_xticks(TimeTicks)
         ax.set_xticklabels(TimeTicksLabels)
@@ -495,12 +495,12 @@ def stSpectogram(signal, Fs, Win, Step, PLOT=False):
         fig, ax = plt.subplots()
         imgplot = plt.imshow(specgram.transpose()[::-1, :])
         Fstep = int(nfft / 5.0)
-        FreqTicks = range(0, int(nfft) + Fstep, Fstep)
+        FreqTicks = list(range(0, int(nfft) + Fstep, Fstep))
         FreqTicksLabels = [str(Fs / 2 - int((f * Fs) / (2 * nfft))) for f in FreqTicks]
         ax.set_yticks(FreqTicks)
         ax.set_yticklabels(FreqTicksLabels)
         TStep = countFrames/3
-        TimeTicks = range(0, countFrames, TStep)
+        TimeTicks = list(range(0, countFrames, TStep))
         TimeTicksLabels = ['%.2f' % (float(t * Step) / Fs) for t in TimeTicks]
         ax.set_xticks(TimeTicks)
         ax.set_xticklabels(TimeTicksLabels)
@@ -544,7 +544,7 @@ def stFeatureExtraction(signal, Fs, Win, Step):
     N = len(signal)                                # total number of samples
     curPos = 0
     countFrames = 0
-    nFFT = Win / 2
+    nFFT = int(Win / 2)
 
     [fbank, freqs] = mfccInitFilterBanks(Fs, nFFT)                # compute the triangular filter banks used in the mfcc calculation
     nChroma, nFreqsPerChroma = stChromaFeaturesInit(nFFT, Fs)
@@ -731,6 +731,7 @@ def dirWavFeatureExtraction(dirName, mtWin, mtStep, stWin, stStep, computeBEAT=F
     wavFilesList = sorted(wavFilesList)
 
     for wavFile in wavFilesList:
+        print("Reading ", wavFile)
         [Fs, x] = audioBasicIO.readAudioFile(wavFile)            # read file
         t1 = time.clock()
         x = audioBasicIO.stereo2mono(x)                          # convert stereo to mono
@@ -753,7 +754,7 @@ def dirWavFeatureExtraction(dirName, mtWin, mtStep, stWin, stStep, computeBEAT=F
         duration = float(len(x)) / Fs
         processingTimes.append((t2 - t1) / duration)
     if len(processingTimes) > 0:
-        print "Feature extraction complexity ratio: {0:.1f} x realtime".format((1.0 / numpy.mean(numpy.array(processingTimes))))
+        print("Feature extraction complexity ratio: {0:.1f} x realtime".format((1.0 / numpy.mean(numpy.array(processingTimes)))))
     return (allMtFeatures, wavFilesList)
 
 
@@ -851,20 +852,20 @@ def mtFeatureExtractionToFile(fileName, midTermSize, midTermStep, shortTermSize,
 
     numpy.save(outPutFile, mtF)                              # save mt features to numpy file
     if PLOT:
-        print "Mid-term numpy file: " + outPutFile + ".npy saved"
+        print("Mid-term numpy file: " + outPutFile + ".npy saved")
     if storeToCSV:
         numpy.savetxt(outPutFile+".csv", mtF.T, delimiter=",")
         if PLOT:
-            print "Mid-term CSV file: " + outPutFile + ".csv saved"
+            print("Mid-term CSV file: " + outPutFile + ".csv saved")
 
     if storeStFeatures:
         numpy.save(outPutFile+"_st", stF)                    # save st features to numpy file
         if PLOT:
-            print "Short-term numpy file: " + outPutFile + "_st.npy saved"
+            print("Short-term numpy file: " + outPutFile + "_st.npy saved")
         if storeToCSV:
             numpy.savetxt(outPutFile+"_st.csv", stF.T, delimiter=",")    # store st features to CSV file
             if PLOT:
-                print "Short-term CSV file: " + outPutFile + "_st.csv saved"
+                print("Short-term CSV file: " + outPutFile + "_st.csv saved")
 
 
 def mtFeatureExtractionToFileDir(dirName, midTermSize, midTermStep, shortTermSize, shortTermStep, storeStFeatures=False, storeToCSV=False, PLOT=False):

@@ -1,8 +1,8 @@
-import os, sys, shutil, glob, numpy, csv, cPickle
+import os, sys, shutil, glob, numpy, csv, pickle
 import scipy.io.wavfile as wavfile
-import audioBasicIO
-import audioTrainTest as aT
-import audioSegmentation as aS
+from . import audioBasicIO
+from . import audioTrainTest as aT
+from . import audioSegmentation as aS
 import matplotlib.pyplot as plt
 import scipy.spatial.distance
 minDuration = 7;
@@ -28,7 +28,7 @@ def classifyFolderWrapper(inputFolder, modelType, modelName, outputMode=False):
 	wavFilesList.extend(glob.glob(strFilePattern))
 	wavFilesList = sorted(wavFilesList)
 	if len(wavFilesList)==0:
-		print "No WAV files found!"
+		print("No WAV files found!")
 		return 
 	
 	Results = []
@@ -40,14 +40,14 @@ def classifyFolderWrapper(inputFolder, modelType, modelName, outputMode=False):
 		Result = int(Result)
 		Results.append(Result)
 		if outputMode:
-			print "{0:s}\t{1:s}".format(wavFile,classNames[Result])
+			print("{0:s}\t{1:s}".format(wavFile,classNames[Result]))
 	Results = numpy.array(Results)
 	
 	# print distribution of classes:
 	[Histogram, _] = numpy.histogram(Results, bins=numpy.arange(len(classNames)+1))
 	if outputMode:	
 		for i,h in enumerate(Histogram):
-			print "{0:20s}\t\t{1:d}".format(classNames[i], h)
+			print("{0:20s}\t\t{1:d}".format(classNames[i], h))
 	PsAll = PsAll / numpy.sum(PsAll)
 
 
@@ -56,9 +56,9 @@ def classifyFolderWrapper(inputFolder, modelType, modelName, outputMode=False):
 		ax = fig.add_subplot(111)
 		plt.title("Classes percentage " + inputFolder.replace('Segments',''))
 		ax.axis((0, len(classNames)+1, 0, 1))
-		ax.set_xticks(numpy.array(range(len(classNames)+1)))
+		ax.set_xticks(numpy.array(list(range(len(classNames)+1))))
 		ax.set_xticklabels([" "] + classNames)
-		ax.bar(numpy.array(range(len(classNames)))+0.5, PsAll)
+		ax.bar(numpy.array(list(range(len(classNames))))+0.5, PsAll)
 		plt.show()
 	return classNames, PsAll
 
@@ -92,14 +92,14 @@ def analyzeDir(dirPath):
 		getMusicSegmentsFromFile(f)	
 		[c, P]= classifyFolderWrapper(f[0:-4] + "_musicSegments", "svm", "data/svmMusicGenre8", False)
 		if i==0:
-			print "".ljust(100)+"\t",
+			print("".ljust(100)+"\t", end=' ')
 			for C in c:
-				print C.ljust(12)+"\t",
-			print
-		print f.ljust(100)+"\t",
+				print(C.ljust(12)+"\t", end=' ')
+			print()
+		print(f.ljust(100)+"\t", end=' ')
 		for p in P:
-				print "{0:.2f}".format(p).ljust(12)+"\t",
-		print
+				print("{0:.2f}".format(p).ljust(12)+"\t", end=' ')
+		print()
 		
 def main(argv):	
 	
@@ -137,25 +137,25 @@ def main(argv):
 			plt.show()
 
 			fo = open(csvFile + "_simMatrix", "wb")
-			cPickle.dump(fileNames,  fo, protocol = cPickle.HIGHEST_PROTOCOL)
-			cPickle.dump(f, fo, protocol = cPickle.HIGHEST_PROTOCOL)			
-			cPickle.dump(Sim, fo, protocol = cPickle.HIGHEST_PROTOCOL)
+			pickle.dump(fileNames,  fo, protocol = pickle.HIGHEST_PROTOCOL)
+			pickle.dump(f, fo, protocol = pickle.HIGHEST_PROTOCOL)			
+			pickle.dump(Sim, fo, protocol = pickle.HIGHEST_PROTOCOL)
 			fo.close()
 
 	elif argv[1]=="--loadsim":
 		try:
 			fo = open(argv[2], "rb")
 		except IOError:
-				print "didn't find file"
+				print("didn't find file")
 				return
 		try:			
-			fileNames 	= cPickle.load(fo)
-			f 			= cPickle.load(fo)
-			Sim 		= cPickle.load(fo)
+			fileNames 	= pickle.load(fo)
+			f 			= pickle.load(fo)
+			Sim 		= pickle.load(fo)
 		except:
 			fo.close()
 		fo.close()	
-		print fileNames
+		print(fileNames)
 		Sim1 = numpy.reshape(Sim, (Sim.shape[0]*Sim.shape[1], 1))
 		plt.hist(Sim1)
 		plt.show()
@@ -179,14 +179,14 @@ def main(argv):
 			histTemp /= histTemp.sum()
 			
 			if i==0:
-				print "".ljust(100)+"\t",
+				print("".ljust(100)+"\t", end=' ')
 				for C in classesAll:
-					print C.ljust(12)+"\t",
-				print
-			print w.ljust(100)+"\t",
+					print(C.ljust(12)+"\t", end=' ')
+				print()
+			print(w.ljust(100)+"\t", end=' ')
 			for h in histTemp:				
-				print "{0:.2f}".format(h).ljust(12)+"\t",
-			print
+				print("{0:.2f}".format(h).ljust(12)+"\t", end=' ')
+			print()
 
 			
 	return 0

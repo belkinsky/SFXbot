@@ -1,13 +1,24 @@
+import timeit
 from concurrent.futures import ThreadPoolExecutor
-import pyaudio
 
+import numpy as np
+import pyaudio
+import datetime
+import sys
+import os
+import time
+sys.path.append(os.path.dirname(__file__) + "/../pyAudioAnalysis")
+from pyAudioAnalysis import audioTrainTest as aT
+
+SAMPLING_RATE = 16000
+SIGNIFICANCE = 0.6 #try different values.
 
 
 class AudioInput:
     def __init__(self):
         self.chunk_sz = 1024
         self.format = pyaudio.paInt16
-        self.rate = 16000
+        self.rate = SAMPLING_RATE
         self.channels = 1
         self.p = pyaudio.PyAudio()
         self.stream = self.p.open(format=self.format,
@@ -50,7 +61,7 @@ class BlockQueue:
         self.queue.append(block)
         if len(self.queue) > self.slide_step * 3:   # Hardcoded const. Number of fragments
             del self.queue[0]
-        for i in range(1, 3):
+        for i in range(1, 3+1):
             if len(self.queue) >= self.slide_step * i:
                 queue_temp = self.queue[-self.slide_step * i:]
                 fragment = [item for sublist in queue_temp for item in sublist]
@@ -58,7 +69,32 @@ class BlockQueue:
 
 
 def background_recognize(fragment):
-    print("Matching " + fragment + " fragment.")
+
+    try:
+        print("{} Matching fragment {} samples..".format(datetime.datetime.now().time(), len(fragment)))
+
+        start_time = time.time()
+        Result, P, classNames = aT.fragmentClassification(
+            Fs=SAMPLING_RATE,
+            x=fragment,
+            modelName="..\svmModel",
+            modelType="svm")
+
+        elapsed_time = time.time() - start_time
+
+        winner = np.argmax(P)
+
+        print("consumed=", elapsed_time)
+        # is the highest value found above the isSignificant threshhold?
+        if P[winner] > SIGNIFICANCE :
+          print("File:  is in category: " + classNames[winner] + ", with probability: " + str(P[winner]))
+        else :
+          print("Can't classify sound: " + str(P))
+          print("But is the winner: " + classNames[winner] + ", with probability: " + str(P[winner]))
+    except Exception as e:
+        print(type(e))    # the exception instance
+        print(e.args)     # arguments stored in .args
+        print(e)
 
 
 def main():
