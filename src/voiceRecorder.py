@@ -1,17 +1,18 @@
 import timeit
 from concurrent.futures import ThreadPoolExecutor
+from sys import argv
 
 import numpy as np
 import pyaudio
-import datetime
 import sys
 import os
 import time
-sys.path.append(os.path.dirname(__file__) + "/../pyAudioAnalysis")
+SCRIPT_DIR=os.path.dirname(__file__)
+sys.path.append(SCRIPT_DIR + "/../pyAudioAnalysis")
 from pyAudioAnalysis import audioTrainTest as aT
 
 SAMPLING_RATE = 16000
-SIGNIFICANCE = 0.59 #try different values.
+SIGNIFICANCE = 0.6 #try different values.
 
 
 class AudioInput:
@@ -68,7 +69,8 @@ class BlockQueue:
                 self.on_fragment_full(fragment)
 
 
-def background_recognize(fragment):
+def background_recognize(fragment, model_type):
+    model_filename = SCRIPT_DIR + "/../data/"+model_type
 
     try:
         # print("{} Matching fragment {} samples..".format(datetime.datetime.now().time(), len(fragment)))
@@ -77,8 +79,8 @@ def background_recognize(fragment):
         Result, P, classNames = aT.fragmentClassification(
             Fs=SAMPLING_RATE,
             x=fragment,
-            modelName="..\svmModel",
-            modelType="svm")
+            modelName=model_filename,
+            modelType=model_type)
 
         elapsed_time = time.time() - start_time
 
@@ -87,11 +89,13 @@ def background_recognize(fragment):
         # print("consumed=", elapsed_time)
         # is the highest value found above the isSignificant threshhold?
         if P[winner] > SIGNIFICANCE :
-          print("Event detected: " + classNames[winner] + ", with probability: " + str(P[winner]))
+            print("Event detected: " + classNames[winner] + ", with probability: " + str(P[winner]))
         else :
-          # print("Can't classify sound: " + str(P))
-          # print("But is the winner: " + classNames[winner] + ", with probability: " + str(P[winner]))
-          pass
+            # sys.stdout.write('.')
+            print(elapsed_time)
+            # print("Can't classify sound: " + str(P))
+            # print("But is the winner: " + classNames[winner] + ", with probability: " + str(P[winner]))
+            pass
 
     except Exception as e:
         print(type(e))    # the exception instance
@@ -99,11 +103,12 @@ def background_recognize(fragment):
         print(e)
 
 
-def main():
+def main(argv):
+    model_type = argv[1]
     executor = ThreadPoolExecutor(max_workers=3)
 
     def recognize_in_background(fragment):
-        executor.submit(background_recognize, fragment)
+        executor.submit(background_recognize, fragment, model_type)
 
     block_queue = BlockQueue(slide_step=2, on_fragment_full=recognize_in_background)
     audio_input = AudioInput()
@@ -116,7 +121,10 @@ def main():
         if block is not None:
             block_queue.add_block(block)
 
-main()
+
+
+
+main(argv)
 
 # stream.stop_stream()
 # stream.close()
