@@ -1,7 +1,9 @@
 import timeit
 from concurrent.futures import ThreadPoolExecutor
+
 from sys import argv
 
+import wave
 import numpy as np
 import pyaudio
 import sys
@@ -12,7 +14,8 @@ sys.path.append(SCRIPT_DIR + "/../pyAudioAnalysis")
 from pyAudioAnalysis import audioTrainTest as aT
 
 SAMPLING_RATE = 16000
-SIGNIFICANCE = 0.6 #try different values.
+
+SIGNIFICANCE = 0.3     # try different values.
 
 
 class AudioInput:
@@ -69,6 +72,47 @@ class BlockQueue:
                 self.on_fragment_full(fragment)
 
 
+
+    
+def play(sample):
+    chunk = 1024
+    # instantiate PyAudio (1)
+    p = pyaudio.PyAudio()
+
+    # open stream (2)
+    stream = p.open(format=pyaudio.paInt16,
+                    channels=1,
+                    rate=SAMPLING_RATE,
+                    output=True)
+
+    # read data
+    # data = wf.readframes(CHUNK)
+    sample_conv = bytes()
+    for i in sample:
+        msb = 0xFF & (i >> 8)
+        lsb = 0xFF & i
+        sample_conv += bytes([lsb])
+        sample_conv += bytes([msb])
+
+        if len(sample_conv) >= chunk:
+            stream.write(sample_conv)
+            print(sample_conv)
+            sample_conv = bytes()
+
+    # play stream (3)
+    # while len(data) > 0:
+
+    print("played")
+        # data = wf.readframes(CHUNK)
+
+    # stop stream (4)
+    stream.stop_stream()
+    stream.close()
+
+    # close PyAudio (5)
+    p.terminate()
+
+
 def background_recognize(fragment, model_type):
     model_filename = SCRIPT_DIR + "/../data/"+model_type
 
@@ -88,14 +132,18 @@ def background_recognize(fragment, model_type):
 
         # print("consumed=", elapsed_time)
         # is the highest value found above the isSignificant threshhold?
-        if P[winner] > SIGNIFICANCE :
+
+        if P[winner] > SIGNIFICANCE:
             print("Event detected: " + classNames[winner] + ", with probability: " + str(P[winner]))
-        else :
-            # sys.stdout.write('.')
-            print(elapsed_time)
-            # print("Can't classify sound: " + str(P))
-            # print("But is the winner: " + classNames[winner] + ", with probability: " + str(P[winner]))
-            pass
+            # x = np.fromstring(fragment, np.short)
+            x = np.asarray(fragment)
+            print(x.tofile('lal.wav'))
+            play(fragment)
+
+        else:
+          # print("Can't classify sound: " + str(P))
+          # print("But is the winner: " + classNames[winner] + ", with probability: " + str(P[winner]))
+          pass
 
     except Exception as e:
         print(type(e))    # the exception instance
