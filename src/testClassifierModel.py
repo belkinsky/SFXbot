@@ -1,26 +1,30 @@
 import sys
 import os
-sys.path.append(os.path.dirname(__file__) + "/../pyAudioAnalysis")
+SCRIPT_DIR = os.path.dirname(__file__)
+
+sys.path.append(SCRIPT_DIR + "/../pyAudioAnalysis")
 from pyAudioAnalysis import audioTrainTest as aT
 
 from sys import argv
 import numpy as np
 import timeit
 
-def main():
+def main(argv):
   global filename, Result, P, classNames, winner
-  # P: list of probabilities
-  Result, P, classNames = aT.fileClassification(filename, "svmModel", "svm")
+  script, model_type, filename = argv
+  isSignificant = 0.8 #try different values.
+
+  model_filename = SCRIPT_DIR + "/../data/" + model_type
+
+  Result, P, classNames = aT.fileClassification(filename, model_filename, model_type)
   winner = np.argmax(P) #pick the result with the highest probability value.
 
-script, filename = argv
-isSignificant = 0.8 #try different values.
+  # is the highest value found above the isSignificant threshhold?
+  if P[winner] > isSignificant :
+    print("File: " +filename + " is in category: " + classNames[winner] + ", with probability: " + str(P[winner]))
+  else :
+    print("Can't classify sound: " + str(P))
+    print("But: " +filename + " is the winner: " + classNames[winner] + ", with probability: " + str(P[winner]))
 
-consumed = timeit.timeit(main, number=1)
-print("consumed=", consumed, " s")
-# is the highest value found above the isSignificant threshhold? 
-if P[winner] > isSignificant :
-  print("File: " +filename + " is in category: " + classNames[winner] + ", with probability: " + str(P[winner]))
-else :
-  print("Can't classify sound: " + str(P))
-  print("But: " +filename + " is the winner: " + classNames[winner] + ", with probability: " + str(P[winner]))
+print(argv)
+main(argv)
