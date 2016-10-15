@@ -1,6 +1,6 @@
 import timeit
 from concurrent.futures import ThreadPoolExecutor
-
+import struct
 from sys import argv
 
 import wave
@@ -16,11 +16,11 @@ from pyAudioAnalysis import audioTrainTest as aT
 SAMPLING_RATE = 16000
 
 SIGNIFICANCE = 0.3     # try different values.
-
+NOISE_THRESHOLD = 200
 
 class AudioInput:
     def __init__(self):
-        self.chunk_sz = 1024
+        self.chunk_sz = 1024  # samples
         self.format = pyaudio.paInt16
         self.rate = SAMPLING_RATE
         self.channels = 1
@@ -39,7 +39,7 @@ class AudioInput:
 class ChunkAccumulator:
     def __init__(self, block_sz):
         self.block = None
-        self.block_sz = block_sz
+        self.block_sz = block_sz  # samples
 
     def accumulate(self, chunk):
         if self.block is None:
@@ -47,7 +47,7 @@ class ChunkAccumulator:
         else:
             self.block += chunk
 
-        if len(self.block) >= self.block_sz:
+        if len(self.block) >= self.block_sz * 2: # hardcoded sample size = 2
             ret = self.block
             self.block = None
             return ret
@@ -68,7 +68,7 @@ class BlockQueue:
         for i in range(1, 3+1):
             if len(self.queue) >= self.slide_step * i:
                 queue_temp = self.queue[-self.slide_step * i:]
-                fragment = [item for sublist in queue_temp for item in sublist]
+                fragment = bytes().join(queue_temp)
                 self.on_fragment_full(fragment)
 
 
@@ -96,7 +96,7 @@ def play(sample):
 
         if len(sample_conv) >= chunk:
             stream.write(sample_conv)
-            print(sample_conv)
+            # print(sample_conv)
             sample_conv = bytes()
 
     # play stream (3)
@@ -112,12 +112,23 @@ def play(sample):
     # close PyAudio (5)
     p.terminate()
 
+def convert_to_int_list(bytes_chunk):
+    l = list(struct.iter_unpack("<h",bytes_chunk))
+    return [item for sublist in l for item in sublist]
 
-def background_recognize(fragment, model_type):
+def background_recognize(fragment_bytes, model_type):
     model_filename = SCRIPT_DIR + "/../data/"+model_type
 
     try:
         # print("{} Matching fragment {} samples..".format(datetime.datetime.now().time(), len(fragment)))
+
+        fragment = convert_to_int_list(fragment_bytes)
+
+        max_peak = max(abs(i) for i in fragment)
+
+        if max_peak < NOISE_THRESHOLD:
+            print("Silence ", max_peak);
+            return
 
         start_time = time.time()
         Result, P, classNames = aT.fragmentClassification(
@@ -137,7 +148,7 @@ def background_recognize(fragment, model_type):
             print("Event detected: " + classNames[winner] + ", with probability: " + str(P[winner]))
             # x = np.fromstring(fragment, np.short)
             x = np.asarray(fragment)
-            print(x.tofile('lal.wav'))
+            print(x.tofile('lastDetected.pcm'))
             play(fragment)
 
         else:
@@ -149,6 +160,7 @@ def background_recognize(fragment, model_type):
         print(type(e))    # the exception instance
         print(e.args)     # arguments stored in .args
         print(e)
+        raise(e)
 
 
 def main(argv):
