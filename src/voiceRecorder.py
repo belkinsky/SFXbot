@@ -10,6 +10,7 @@ import sys
 import os
 import time
 import select
+import random
 SCRIPT_DIR=os.path.dirname(__file__)
 sys.path.append(SCRIPT_DIR + "/../pyAudioAnalysis")
 from pyAudioAnalysis import audioTrainTest as aT
@@ -30,9 +31,11 @@ violet = 255, 0, 255
 yellow = 255, 255, 0
 pink = 252, 15, 192
 
-response_dict = {"привет": SCRIPT_DIR + "/../data/responses/privet/glados.wav",
-                 "будьте здоровы": SCRIPT_DIR + "/../data/responses/spasibo/spasibo.wav",
-                 "доброе утро": SCRIPT_DIR + "/../data/responses/dobroe_utro/dobroe_utro_e.wav"}
+response_dict = {"привет": SCRIPT_DIR + "/../data/responses/privet",
+                 "будьте здоровы": SCRIPT_DIR + "/../data/responses/spasibo",
+                 "доброе утро": SCRIPT_DIR + "/../data/responses/dobroe_utro",
+                 "добрый вечер": SCRIPT_DIR + "/../data/responses/dobry_vecher",
+                 "спасибо": SCRIPT_DIR + "/../data/responses/spasibo"}
 
 
 class AudioInput:
@@ -197,7 +200,8 @@ def get_char(block=True):
 
 def handle_speech(line):
     if response_dict.get(line) is not None:
-        play_wav(response_dict[line])
+        to_play = random.choice(os.listdir(response_dict[line]))
+        play_wav(response_dict[line]+"/"+to_play)
     else:
         pass
 
