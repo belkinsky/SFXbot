@@ -15,7 +15,7 @@ from pyAudioAnalysis import audioTrainTest as aT
 
 SAMPLING_RATE = 16000
 
-SIGNIFICANCE = 0.3     # try different values.
+SIGNIFICANCE = 0.9     # try different values.
 NOISE_THRESHOLD = 200
 screen_size = 800, 500
 screen = pygame.display.set_mode(screen_size)
@@ -133,18 +133,16 @@ def convert_to_int_list(bytes_chunk):
     return [item for sublist in l for item in sublist]
 
 
-def background_recognize(fragment_bytes, model_type):
+def background_recognize(fragment, model_type):
     model_filename = SCRIPT_DIR + "/../data/"+model_type
 
     try:
         # print("{} Matching fragment {} samples..".format(datetime.datetime.now().time(), len(fragment)))
 
-        fragment = convert_to_int_list(fragment_bytes)
-
         max_peak = max(abs(i) for i in fragment)
 
         if max_peak < NOISE_THRESHOLD:
-            print("Silence ", max_peak);
+            print("Silence ", max_peak)
             return
 
         start_time = time.time()
@@ -164,9 +162,9 @@ def background_recognize(fragment_bytes, model_type):
         if P[winner] > SIGNIFICANCE:
             print("Event detected: " + classNames[winner] + ", with probability: " + str(P[winner]))
             # x = np.fromstring(fragment, np.short)
-            x = np.asarray(fragment)
-            print(x.tofile('lastDetected.pcm'))
-            play(fragment)
+            # x = np.asarray(fragment)
+            # print(x.tofile('lastDetected.pcm'))
+            # play(fragment)
 
         else:
           # print("Can't classify sound: " + str(P))
@@ -177,7 +175,7 @@ def background_recognize(fragment_bytes, model_type):
         print(type(e))    # the exception instance
         print(e.args)     # arguments stored in .args
         print(e)
-        raise(e)
+        raise()
 
 
 def draw(chunk, i):
@@ -186,7 +184,7 @@ def draw(chunk, i):
             sys.exit()
     max_chunk = max(chunk)
     min_chunk = min(chunk)
-    pygame.draw.rect(screen, black, [i, 0, i + 20, screen_size[0]])
+    pygame.draw.rect(screen, black, [i, 0, 10, screen_size[1]])
     pygame.draw.line(screen, green, (0, screen_size[1]/2), (screen_size[0], screen_size[1]/2), 3)
     pygame.draw.line(screen, green, (i, screen_size[1]/2 + max_chunk/50), (i, screen_size[1]/2 + min_chunk/50))
     pygame.display.update()
