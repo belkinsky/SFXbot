@@ -2,7 +2,7 @@ import timeit
 from concurrent.futures import ThreadPoolExecutor
 import struct
 from sys import argv
-
+import pygame
 import wave
 import numpy as np
 import pyaudio
@@ -17,6 +17,18 @@ SAMPLING_RATE = 16000
 
 SIGNIFICANCE = 0.3     # try different values.
 NOISE_THRESHOLD = 200
+screen_size = 800, 500
+screen = pygame.display.set_mode(screen_size)
+
+black = 0, 0, 0
+white = 255, 255, 255
+blue = 0, 0, 255
+green = 128, 255, 128
+red = 255, 0, 0
+violet = 255, 0, 255
+yellow = 255, 255, 0
+pink = 252, 15, 192
+
 
 class AudioInput:
     def __init__(self):
@@ -33,6 +45,7 @@ class AudioInput:
 
     def read_chunk(self):
         data = self.stream.read(self.chunk_sz)
+        data = convert_to_int_list(data)
         return data
 
 
@@ -47,7 +60,7 @@ class ChunkAccumulator:
         else:
             self.block += chunk
 
-        if len(self.block) >= self.block_sz * 2: # hardcoded sample size = 2
+        if len(self.block) >= self.block_sz:
             ret = self.block
             self.block = None
             return ret
@@ -68,12 +81,10 @@ class BlockQueue:
         for i in range(1, 3+1):
             if len(self.queue) >= self.slide_step * i:
                 queue_temp = self.queue[-self.slide_step * i:]
-                fragment = bytes().join(queue_temp)
+                fragment = flatten(queue_temp)
                 self.on_fragment_full(fragment)
 
 
-
-    
 def play(sample):
     chunk = 1024
     # instantiate PyAudio (1)
@@ -112,9 +123,15 @@ def play(sample):
     # close PyAudio (5)
     p.terminate()
 
+
+def flatten(concat_list):
+    return [item for sublist in concat_list for item in sublist]
+
+
 def convert_to_int_list(bytes_chunk):
     l = list(struct.iter_unpack("<h",bytes_chunk))
     return [item for sublist in l for item in sublist]
+
 
 def background_recognize(fragment_bytes, model_type):
     model_filename = SCRIPT_DIR + "/../data/"+model_type
@@ -163,9 +180,23 @@ def background_recognize(fragment_bytes, model_type):
         raise(e)
 
 
+def draw(chunk, i):
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            sys.exit()
+    max_chunk = max(chunk)
+    min_chunk = min(chunk)
+    pygame.draw.rect(screen, black, [i, 0, i + 20, screen_size[0]])
+    pygame.draw.line(screen, green, (0, screen_size[1]/2), (screen_size[0], screen_size[1]/2), 3)
+    pygame.draw.line(screen, green, (i, screen_size[1]/2 + max_chunk/50), (i, screen_size[1]/2 + min_chunk/50))
+    pygame.display.update()
+
+
 def main(argv):
+    pygame.init()
     model_type = argv[1]
     executor = ThreadPoolExecutor(max_workers=3)
+    iter = 0
 
     def recognize_in_background(fragment):
         executor.submit(background_recognize, fragment, model_type)
@@ -177,11 +208,13 @@ def main(argv):
     accumulator = ChunkAccumulator(block_size)
     while True:
         chunk = audio_input.read_chunk()
+        draw(chunk, iter)
+        iter += 1
+        if iter > screen_size[0]:
+            iter = 0
         block = accumulator.accumulate(chunk)
         if block is not None:
             block_queue.add_block(block)
-
-
 
 
 main(argv)
