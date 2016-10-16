@@ -214,7 +214,7 @@ def main(argv):
     executor = ThreadPoolExecutor(max_workers=3)
     iter = 0
     string_temp = 0
-    sphinks_result = open("sphinx_speech.t", 'r', encoding='utf-8')
+    sphinks_result = open(SCRIPT_DIR + "/../data/sphinx_speech", 'r', encoding='utf-8')
 
     def recognize_in_background(fragment):
         executor.submit(background_recognize, fragment, model_type)
