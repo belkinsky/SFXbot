@@ -9,6 +9,7 @@ import pyaudio
 import sys
 import os
 import time
+import select
 SCRIPT_DIR=os.path.dirname(__file__)
 sys.path.append(SCRIPT_DIR + "/../pyAudioAnalysis")
 from pyAudioAnalysis import audioTrainTest as aT
@@ -28,6 +29,10 @@ red = 255, 0, 0
 violet = 255, 0, 255
 yellow = 255, 255, 0
 pink = 252, 15, 192
+
+response_dict = {"привет": SCRIPT_DIR + "/../data/responses/privet/glados.wav",
+                 "будьте здоровы": SCRIPT_DIR + "/../data/responses/spasibo/spasibo.wav",
+                 "доброе утро": SCRIPT_DIR + "/../data/responses/dobroe_utro/dobroe_utro_e.wav"}
 
 
 class AudioInput:
@@ -85,43 +90,36 @@ class BlockQueue:
                 self.on_fragment_full(fragment)
 
 
-def play(sample):
+def play_wav(filename):
+    # length of data to read.
     chunk = 1024
-    # instantiate PyAudio (1)
+
+    # validation. If a wave file hasn't been specified, exit.
+    # if len(sys.argv) < 2:
+    #     print("Plays a wave file.\n\n" + "Usage: %s filename.wav" % sys.argv[0])
+    #     sys.exit(-1)
+
+    #   open the file for reading.
+
+    wf = wave.open(filename, 'rb')
+
+    # create an audio object
     p = pyaudio.PyAudio()
 
-    # open stream (2)
-    stream = p.open(format=pyaudio.paInt16,
-                    channels=1,
-                    rate=SAMPLING_RATE,
+    # open stream based on the wave object which has been input.
+    stream = p.open(format=p.get_format_from_width(wf.getsampwidth()),
+                    channels=wf.getnchannels(),
+                    rate=wf.getframerate(),
                     output=True)
 
-    # read data
-    # data = wf.readframes(CHUNK)
-    sample_conv = bytes()
-    for i in sample:
-        msb = 0xFF & (i >> 8)
-        lsb = 0xFF & i
-        sample_conv += bytes([lsb])
-        sample_conv += bytes([msb])
+    # read data (based on the chunk size)
+    data = wf.readframes(chunk)
 
-        if len(sample_conv) >= chunk:
-            stream.write(sample_conv)
-            # print(sample_conv)
-            sample_conv = bytes()
-
-    # play stream (3)
-    # while len(data) > 0:
-
-    print("played")
-        # data = wf.readframes(CHUNK)
-
-    # stop stream (4)
-    stream.stop_stream()
-    stream.close()
-
-    # close PyAudio (5)
-    p.terminate()
+    # play stream (looping from beginning of file to the end)
+    while data != b'':
+        # writing to the stream is what *actually* plays the sound.
+        stream.write(data)
+        data = wf.readframes(chunk)
 
 
 def flatten(concat_list):
@@ -129,7 +127,7 @@ def flatten(concat_list):
 
 
 def convert_to_int_list(bytes_chunk):
-    l = list(struct.iter_unpack("<h",bytes_chunk))
+    l = list(struct.iter_unpack("<h", bytes_chunk))
     return [item for sublist in l for item in sublist]
 
 
@@ -160,7 +158,8 @@ def background_recognize(fragment, model_type):
         # is the highest value found above the isSignificant threshhold?
 
         if P[winner] > SIGNIFICANCE:
-            print("Event detected: " + classNames[winner] + ", with probability: " + str(P[winner]))
+            pass
+            # print("Event detected: " + classNames[winner] + ", with probability: " + str(P[winner]))
             # x = np.fromstring(fragment, np.short)
             # x = np.asarray(fragment)
             # print(x.tofile('lastDetected.pcm'))
@@ -190,11 +189,32 @@ def draw(chunk, i):
     pygame.display.update()
 
 
+def get_char(block=True):
+    if block or select.select([sys.stdin], [], [], 0) == ([sys.stdin], [], []):
+        return sys.stdin.read(1)
+    raise('NoChar')
+
+
+def handle_speech(line):
+    if response_dict.get(line) is not None:
+        play_wav(response_dict[line])
+    else:
+        pass
+
+
+def read_file(file):
+    for line in file:
+        handle_speech(line.rstrip())
+        print(line)
+
+
 def main(argv):
     pygame.init()
     model_type = argv[1]
     executor = ThreadPoolExecutor(max_workers=3)
     iter = 0
+    string_temp = 0
+    sphinks_result = open("sphinx_speech.t", 'r', encoding='utf-8')
 
     def recognize_in_background(fragment):
         executor.submit(background_recognize, fragment, model_type)
@@ -205,6 +225,7 @@ def main(argv):
     block_size = min_frag_sz * (audio_input.rate / block_queue.slide_step)
     accumulator = ChunkAccumulator(block_size)
     while True:
+        read_file(sphinks_result)
         chunk = audio_input.read_chunk()
         draw(chunk, iter)
         iter += 1
@@ -216,14 +237,3 @@ def main(argv):
 
 
 main(argv)
-
-# stream.stop_stream()
-# stream.close()
-# p.terminate()
-
-# wf = wave.open(WAVE_OUTPUT_FILENAME, 'wb')
-# wf.setnchannels(CHANNELS)
-# wf.setsampwidth(p.get_sample_size(FORMAT))
-# wf.setframerate(RATE)
-# wf.writeframes(b''.join(frames))
-# wf.close()
