@@ -34,7 +34,7 @@ pink = 252, 15, 192
 response_dict = {"привет": SCRIPT_DIR + "/../data/responses/privet",
                  "будьте здоровы": SCRIPT_DIR + "/../data/responses/spasibo",
                  "доброе утро": SCRIPT_DIR + "/../data/responses/dobroe_utro",
-                 "добрый вечер": SCRIPT_DIR + "/../data/responses/dobry_vecher",
+                 "добрый вечер": SCRIPT_DIR + "/../data/responses/dobriy_vecher",
                  "спасибо": SCRIPT_DIR + "/../data/responses/spasibo"}
 
 

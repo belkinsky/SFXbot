@@ -95,3 +95,6 @@ ENV/
 /src/.idea/src.iml
 /src/.idea/vcs.xml
 /src/.idea/workspace.xml
+
+#ignored .lm - it's too big for GitHub
+/tools/pocketsphinx/cmusphinx-ru-5.2/ru.lm
