@@ -32,10 +32,17 @@ yellow = 255, 255, 0
 pink = 252, 15, 192
 
 response_dict = {"привет": SCRIPT_DIR + "/../data/responses/privet",
-                 "будьте здоровы": SCRIPT_DIR + "/../data/responses/spasibo",
+                 "будьте здоровы": SCRIPT_DIR + "/../data/responses/spasibo",#
+                 "будь здоров": SCRIPT_DIR + "/../data/responses/spasibo",#
                  "доброе утро": SCRIPT_DIR + "/../data/responses/dobroe_utro",
                  "добрый вечер": SCRIPT_DIR + "/../data/responses/dobriy_vecher",
-                 "спасибо": SCRIPT_DIR + "/../data/responses/spasibo"}
+                 "спасибо": SCRIPT_DIR + "/../data/responses/spasibo",#
+                 "как дела": SCRIPT_DIR + "/../data/responses/shikarno",#
+                 "тук-тук": SCRIPT_DIR + "/../data/responses/kto_tam",#
+                 "анекдот": SCRIPT_DIR + "/../data/responses/laugh",#
+                 "здоровья": SCRIPT_DIR + "/../data/responses/zarplata",#
+                 "удачи": SCRIPT_DIR + "/../data/responses/zarplata",
+                 }
 
 
 class AudioInput:
