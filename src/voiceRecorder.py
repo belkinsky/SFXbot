@@ -39,6 +39,7 @@ response_dict = {"привет": SCRIPT_DIR + "/../data/responses/privet",
                  "спасибо": SCRIPT_DIR + "/../data/responses/spasibo",#
                  "как дела": SCRIPT_DIR + "/../data/responses/shikarno",#
                  "тук-тук": SCRIPT_DIR + "/../data/responses/kto_tam",#
+                 "тук тук": SCRIPT_DIR + "/../data/responses/kto_tam",#
                  "анекдот": SCRIPT_DIR + "/../data/responses/laugh",#
                  "здоровья": SCRIPT_DIR + "/../data/responses/zarplata",#
                  "удачи": SCRIPT_DIR + "/../data/responses/zarplata",
@@ -84,6 +85,7 @@ class ChunkAccumulator:
 
 
 class BlockQueue:
+    FRAGMENTS_COUNT = 1
     def __init__(self, on_fragment_full, slide_step):
         self.queue = []
         self.slide_step = slide_step
@@ -91,9 +93,9 @@ class BlockQueue:
 
     def add_block(self, block):
         self.queue.append(block)
-        if len(self.queue) > self.slide_step * 3:   # Hardcoded const. Number of fragments
+        if len(self.queue) > self.slide_step * BlockQueue.FRAGMENTS_COUNT:   # Hardcoded const. Number of fragments
             del self.queue[0]
-        for i in range(1, 3+1):
+        for i in range(1, BlockQueue.FRAGMENTS_COUNT+1):
             if len(self.queue) >= self.slide_step * i:
                 queue_temp = self.queue[-self.slide_step * i:]
                 fragment = flatten(queue_temp)
@@ -230,7 +232,7 @@ def main(argv):
     def recognize_in_background(fragment):
         executor.submit(background_recognize, fragment, model_type)
 
-    block_queue = BlockQueue(slide_step=2, on_fragment_full=recognize_in_background)
+    block_queue = BlockQueue(slide_step=1, on_fragment_full=recognize_in_background)
     audio_input = AudioInput()
     min_frag_sz = 1
     block_size = min_frag_sz * (audio_input.rate / block_queue.slide_step)
